@@ -1,0 +1,9 @@
+# A pasta mais pesada de todas. A Discloud instala isso por conta própria.
+node_modules/
+
+# Arquivo de segredos. As variáveis devem ser colocadas no painel da Discloud.
+.env
+
+# Arquivos de configuração de ambiente de desenvolvimento e git
+.vscode/
+.git/
