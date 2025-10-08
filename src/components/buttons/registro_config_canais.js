@@ -6,7 +6,6 @@ module.exports = {
     async execute(interaction, client) {
         const guildId = interaction.guild.id;
 
-        // CORREÇÃO: Usando 'interactionChannelId' e 'logsChannelId'
         const config = await client.prisma.guildConfig.findUnique({
             where: { guildId },
             select: {
@@ -33,8 +32,19 @@ module.exports = {
             logsChannelSelect.setDefaultChannels([config.logsChannelId]);
         }
 
+        // --- MELHORIA DE TEXTO ---
+        const replyContent = `
+### ⚙️ Configuração de Canais do Registro
+
+**1. Canal de Interação:**
+*Use o **primeiro menu** para definir o canal onde o painel de registro ficará.*
+
+**2. Canal de Logs:**
+*Use o **segundo menu** para definir onde as notificações de novos registros serão enviadas.*
+        `;
+
         await interaction.reply({
-            content: 'Selecione os canais para o sistema de registro:',
+            content: replyContent,
             components: [
                 new ActionRowBuilder().addComponents(interactionChannelSelect),
                 new ActionRowBuilder().addComponents(logsChannelSelect),

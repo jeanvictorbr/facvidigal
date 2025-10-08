@@ -6,7 +6,6 @@ module.exports = {
     async execute(interaction, client) {
         const guildId = interaction.guild.id;
 
-        // CORREÇÃO: Usando os nomes de campo corretos do schema: 'membroRoleId' e 'recrutadorRoleIds'
         const config = await client.prisma.guildConfig.findUnique({
             where: { guildId },
             select: {
@@ -34,8 +33,19 @@ module.exports = {
             recrutadorRoleSelect.setDefaultRoles(config.recrutadorRoleIds);
         }
 
+        // --- MELHORIA DE TEXTO ---
+        const replyContent = `
+### ⚙️ Configuração de Cargos do Registro
+
+**1. Cargo de Membro:**
+*Use o **primeiro menu** para definir o cargo que novos membros aprovados receberão.*
+
+**2. Cargos de Recrutador:**
+*Use o **segundo menu** para definir quais cargos podem avaliar os registros.*
+        `;
+
         await interaction.reply({
-            content: 'Selecione os cargos abaixo:',
+            content: replyContent,
             components: [
                 new ActionRowBuilder().addComponents(membroRoleSelect),
                 new ActionRowBuilder().addComponents(recrutadorRoleSelect),
