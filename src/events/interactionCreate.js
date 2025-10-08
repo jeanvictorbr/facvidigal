@@ -48,16 +48,22 @@ module.exports = {
             handlerType = 'Comando';
         } else if (interaction.isButton() || interaction.isAnySelectMenu() || interaction.isModalSubmit()) {
             handler = components.get(interaction.customId);
-            // Para IDs dinâmicos (ex: 'confirm_delete:${itemId}')
+            handlerName = interaction.customId;
+
+            // --- LÓGICA CORRIGIDA PARA IDs DINÂMICOS ---
             if (!handler) {
-                const [baseId] = interaction.customId.split(':');
-                handler = components.get(baseId);
-                 if (handler) {
-                    handlerName = `${baseId} (dinâmico)`;
+                // Itera sobre todas as chaves de componentes registrados
+                for (const key of components.keys()) {
+                    // Se o ID da interação começar com uma chave registrada, encontramos nosso handler base.
+                    if (interaction.customId.startsWith(key)) {
+                        handler = components.get(key);
+                        handlerName = `${key} (dinâmico)`;
+                        break; // Para o loop assim que encontrar
+                    }
                 }
-            } else {
-                 handlerName = interaction.customId;
             }
+            // --- FIM DA CORREÇÃO ---
+            
             handlerType = interaction.isButton() ? 'Botão' : (interaction.isAnySelectMenu() ? 'Menu' : 'Modal');
         }
 
