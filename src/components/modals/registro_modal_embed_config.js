@@ -16,23 +16,23 @@ module.exports = {
             color = null; 
         }
 
-        // CORREÇÃO FINAL: Salvando nos campos com nomes exatos
+        // CORREÇÃO FINAL: Salvando nos campos com os nomes corretos e definitivos.
         await client.prisma.guildConfig.upsert({
             where: { guildId },
             update: {
                 registroEmbedTitle: title || null,
-                registroEmbedDesc: description || null,      // CORRIGIDO
+                registroEmbedDesc: description || null,
                 registroEmbedColor: color || null,
-                registroEmbedImage: image || null,           // CORRIGIDO
-                registroEmbedThumb: thumb || null,           // CORRIGIDO
+                registroEmbedImage: image || null,
+                registroEmbedThumb: thumb || null,
             },
             create: {
                 guildId,
                 registroEmbedTitle: title,
-                registroEmbedDesc: description,      // CORRIGIDO
+                registroEmbedDesc: description,
                 registroEmbedColor: color,
-                registroEmbedImage: image,           // CORRIGIDO
-                registroEmbedThumb: thumb,           // CORRIGIDO
+                registroEmbedImage: image,
+                registroEmbedThumb: thumb,
             },
         });
 

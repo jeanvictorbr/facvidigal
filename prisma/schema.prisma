@@ -17,11 +17,12 @@ model GuildConfig {
   id                                String   @id @default(cuid())
   guildId                           String   @unique
 
-  // Módulo Registro
-  registroEmbedTitle                String?  @default("Formulário de Registro")
-  registroEmbedDesc                 String?  @default("Clique no botão abaixo para iniciar seu registro.")
+  // Módulo Registro  
+  registroEmbedTitle                String?
+  registroEmbedDesc                 String?
+  registroEmbedColor                String?   // <--- GARANTA QUE ESTA LINHA EXISTA
   registroEmbedImage                String?
-  registroEmbedThumb                String?
+  registroEmbedThumb                String?   // <--- GARANTA QUE O NOME SEJA ESTE (sem URL)
   registroEmbedThumbURL             String?   // <--- ADICIONE ESTA LINHA
   recrutadorRoleIds                 String[] @default([]) // Plural e tipo Array
   membroRoleId                      String?

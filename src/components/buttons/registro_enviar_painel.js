@@ -14,7 +14,7 @@ module.exports = {
 
             if (!config) {
                 return await interaction.editReply({ 
-                    content: '❌ As configurações de registro ainda não foram iniciadas para este servidor.',
+                    content: '❌ As configurações de registro ainda não foram iniciadas.',
                     ephemeral: true 
                 });
             }
@@ -26,22 +26,22 @@ module.exports = {
             if (!config.recrutadorRoleIds || config.recrutadorRoleIds.length === 0) missingSettings.push('Cargo de Recrutador');
 
             if (missingSettings.length > 0) {
-                const errorMessage = `❌ Impossível publicar o painel. As seguintes configurações estão em falta:\n- **${missingSettings.join('**\n- **')}**`;
+                const errorMessage = `❌ Impossível publicar. Falta configurar:\n- **${missingSettings.join('**\n- **')}**`;
                 return await interaction.editReply({ content: errorMessage, ephemeral: true });
             }
 
             const targetChannel = await interaction.guild.channels.fetch(config.interactionChannelId);
             if (!targetChannel) {
-                return await interaction.editReply({ content: '❌ O canal de interação configurado não foi encontrado ou foi excluído.', ephemeral: true });
+                return await interaction.editReply({ content: '❌ O canal de interação não foi encontrado.', ephemeral: true });
             }
 
-            // CORREÇÃO FINAL: Usando os nomes exatos ao construir a embed
+            // CORREÇÃO FINAL: Usando os nomes corretos e definitivos para criar a embed.
             const embed = new EmbedBuilder()
                 .setTitle(config.registroEmbedTitle || 'PAINEL DE REGISTRO')
-                .setDescription(config.registroEmbedDesc || 'Clique no botão abaixo para iniciar o seu processo de registro.') // CORRIGIDO
+                .setDescription(config.registroEmbedDesc || 'Clique no botão abaixo para iniciar o seu processo de registro.')
                 .setColor(config.registroEmbedColor || '#0099ff')
-                .setImage(config.registroEmbedImage || null) // CORRIGIDO
-                .setThumbnail(config.registroEmbedThumb || null); // CORRIGIDO
+                .setImage(config.registroEmbedImage || null)
+                .setThumbnail(config.registroEmbedThumb || null);
 
             const row = new ActionRowBuilder()
                 .addComponents(
@@ -54,11 +54,11 @@ module.exports = {
 
             await targetChannel.send({ embeds: [embed], components: [row] });
 
-            await interaction.editReply({ content: `✅ Painel de registro publicado com sucesso no canal ${targetChannel}!`, ephemeral: true });
+            await interaction.editReply({ content: `✅ Painel publicado com sucesso em ${targetChannel}!`, ephemeral: true });
 
         } catch (error) {
             console.error('Erro ao publicar painel de registro:', error);
-            await interaction.editReply({ content: '❌ Ocorreu um erro inesperado ao buscar as configurações ou enviar o painel.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Ocorreu um erro inesperado.', ephemeral: true });
         }
     },
 };
