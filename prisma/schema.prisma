@@ -22,6 +22,7 @@ model GuildConfig {
   registroEmbedDesc                 String?  @default("Clique no botão abaixo para iniciar seu registro.")
   registroEmbedImage                String?
   registroEmbedThumb                String?
+  registroEmbedThumbURL             String?   // <--- ADICIONE ESTA LINHA
   recrutadorRoleIds                 String[] @default([]) // Plural e tipo Array
   membroRoleId                      String?
   approvedTag                       String?

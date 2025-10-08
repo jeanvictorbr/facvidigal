@@ -9,18 +9,18 @@ module.exports = {
         const guildId = interaction.guild.id;
 
         try {
+            // CORREÇÃO: Buscando também o campo da thumbnail
             const config = await client.prisma.guildConfig.findUnique({
                 where: { guildId },
             });
 
             if (!config) {
                 return await interaction.editReply({ 
-                    content: '❌ As configurações de registro ainda não foram iniciadas para este servidor. Use o painel de configuração primeiro.',
+                    content: '❌ As configurações de registro ainda não foram iniciadas para este servidor.',
                     ephemeral: true 
                 });
             }
 
-            // --- VERIFICAÇÕES CORRIGIDAS ---
             const missingSettings = [];
             if (!config.interactionChannelId) missingSettings.push('Canal de Interação');
             if (!config.logsChannelId) missingSettings.push('Canal de Logs');
@@ -28,13 +28,9 @@ module.exports = {
             if (!config.recrutadorRoleIds || config.recrutadorRoleIds.length === 0) missingSettings.push('Cargo de Recrutador');
 
             if (missingSettings.length > 0) {
-                const errorMessage = `❌ Impossível publicar o painel. As seguintes configurações estão em falta:\n- **${missingSettings.join('**\n- **')}**\n\nPor favor, configure todos os canais e cargos necessários antes de publicar.`;
-                return await interaction.editReply({
-                    content: errorMessage,
-                    ephemeral: true
-                });
+                const errorMessage = `❌ Impossível publicar o painel. As seguintes configurações estão em falta:\n- **${missingSettings.join('**\n- **')}**`;
+                return await interaction.editReply({ content: errorMessage, ephemeral: true });
             }
-            // --- FIM DAS VERIFICAÇÕES ---
 
             const targetChannel = await interaction.guild.channels.fetch(config.interactionChannelId);
             if (!targetChannel) {
@@ -43,9 +39,10 @@ module.exports = {
 
             const embed = new EmbedBuilder()
                 .setTitle(config.registroEmbedTitle || 'PAINEL DE REGISTRO')
-                .setDescription(config.registroEmbedDescription || 'Clique no botão abaixo para iniciar o seu processo de registro em nossa facção.')
+                .setDescription(config.registroEmbedDescription || 'Clique no botão abaixo para iniciar o seu processo de registro.')
                 .setColor(config.registroEmbedColor || '#0099ff')
-                .setImage(config.registroEmbedImageURL || null);
+                .setImage(config.registroEmbedImageURL || null)
+                .setThumbnail(config.registroEmbedThumbURL || null); // CORREÇÃO: Adicionada a thumbnail
 
             const row = new ActionRowBuilder()
                 .addComponents(
@@ -62,7 +59,7 @@ module.exports = {
 
         } catch (error) {
             console.error('Erro ao publicar painel de registro:', error);
-            await interaction.editReply({ content: '❌ Ocorreu um erro inesperado ao buscar as configurações ou enviar o painel. Verifique minhas permissões no canal de destino.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Ocorreu um erro inesperado ao buscar as configurações ou enviar o painel.', ephemeral: true });
         }
     },
 };
