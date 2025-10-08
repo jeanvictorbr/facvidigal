@@ -1,21 +1,25 @@
 // src/components/selects/registro_select_logs_channel.js
-const { ChannelSelectMenuInteraction } = require('discord.js');
 const prisma = require('../../prisma/client');
-const { buildPanel } = require('../buttons/registro_config_canais');
 
 module.exports = {
     customId: 'registro_select_logs_channel',
-    async execute(interaction) {
-        await interaction.deferReply({ ephemeral: true, fetchReply: true });
+    async execute(interaction, client) {
+        const guildId = interaction.guild.id;
+        const channelId = interaction.values[0];
 
-        const selectedChannelId = interaction.values[0];
-        await prisma.guildConfig.upsert({
-            where: { guildId: interaction.guild.id },
-            update: { logsChannelId: selectedChannelId },
-            create: { guildId: interaction.guild.id, logsChannelId: selectedChannelId }
+        // CORREÇÃO: Usando 'guildConfig' e o campo 'registroLogsChannelId'
+        await client.prisma.guildConfig.upsert({
+            where: { guildId },
+            update: { registroLogsChannelId: channelId },
+            create: {
+                guildId,
+                registroLogsChannelId: channelId,
+            },
         });
 
-        const updatedPanel = await buildPanel(interaction);
-        await interaction.editReply(updatedPanel);
-    }
+        await interaction.update({
+            content: `✅ Canal de logs definido como <#${channelId}>.`,
+            components: [],
+        });
+    },
 };

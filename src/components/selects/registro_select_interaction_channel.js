@@ -1,24 +1,25 @@
 // src/components/selects/registro_select_interaction_channel.js
-const { ChannelSelectMenuInteraction } = require('discord.js');
 const prisma = require('../../prisma/client');
-// Importa apenas a "fábrica"
-const { buildPanel } = require('../buttons/registro_config_canais');
 
 module.exports = {
     customId: 'registro_select_interaction_channel',
-    async execute(interaction) {
-        await interaction.deferReply({ ephemeral: true, fetchReply: true });
+    async execute(interaction, client) {
+        const guildId = interaction.guild.id;
+        const channelId = interaction.values[0];
 
-        const selectedChannelId = interaction.values[0];
-        await prisma.guildConfig.upsert({
-            where: { guildId: interaction.guild.id },
-            update: { interactionChannelId: selectedChannelId },
-            create: { guildId: interaction.guild.id, interactionChannelId: selectedChannelId }
+        // CORREÇÃO: Usando 'guildConfig' e o campo 'registroChannelId'
+        await client.prisma.guildConfig.upsert({
+            where: { guildId },
+            update: { registroChannelId: channelId },
+            create: {
+                guildId,
+                registroChannelId: channelId,
+            },
         });
 
-        // Usa a "fábrica" para obter a nova aparência do painel
-        const updatedPanel = await buildPanel(interaction);
-        // Usa editReply para atualizar a mensagem original
-        await interaction.editReply(updatedPanel);
-    }
+        await interaction.update({
+            content: `✅ Canal de interação definido como <#${channelId}>.`,
+            components: [],
+        });
+    },
 };

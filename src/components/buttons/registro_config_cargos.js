@@ -1,56 +1,47 @@
 // src/components/buttons/registro_config_cargos.js
-const { EmbedBuilder, ActionRowBuilder, RoleSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { ActionRowBuilder, RoleSelectMenuBuilder } = require('discord.js');
 const prisma = require('../../prisma/client');
 
 module.exports = {
     customId: 'registro_config_cargos',
-    async execute(interaction) {
-        await interaction.deferUpdate();
+    async execute(interaction, client) {
+        const guildId = interaction.guild.id;
 
-        const config = await prisma.guildConfig.findUnique({ where: { guildId: interaction.guild.id } });
-        
-        // --- LÓGICA ATUALIZADA PARA LISTA DE CARGOS ---
-        const recruiterRoles = config?.recrutadorRoleIds || [];
-        const recruiterRolesText = recruiterRoles.length > 0
-            ? recruiterRoles.map(id => `> <@&${id}>`).join('\n')
-            : '`[ ✖️ NENHUM CARGO DEFINIDO ]`';
+        // CORREÇÃO: Lendo de 'guildConfig' e usando os nomes de campo corretos
+        const config = await client.prisma.guildConfig.findUnique({
+            where: { guildId },
+            select: {
+                registroMembroRoleId: true,
+                recrutador_roles: true,
+            },
+        });
 
-        const memberRole = config?.membroRoleId ? `<@&${config.membroRoleId}>` : '`[ ✖️ NÃO DEFINIDO ]`';
+        const membroRoleSelect = new RoleSelectMenuBuilder()
+            .setCustomId('registro_select_membro_role')
+            .setPlaceholder('Selecione o cargo de membro')
+            .setMaxValues(1);
 
-        const embed = new EmbedBuilder()
-            .setColor('#f1c40f')
-            .setTitle('[ 🎖️ CONFIGURAÇÃO DE CARGOS DE REGISTRO ]')
-            .setDescription('Defina os cargos essenciais para o fluxo de registro.')
-            .setThumbnail('https://media.discordapp.net/attachments/1310610658844475404/1401110522228637786/standard_7.gif?ex=688f155b&is=688dc3db&hm=d90a54a81a18f9e53438b05d9b2c2f0b42028c1c6e5dc6dbcfd4afaeca55ca9e&=')
-            .addFields(
-                { name: '🛡️ Cargos de Recrutador', value: recruiterRolesText, inline: false },
-                { name: '✅ Cargo de Membro Registrado', value: `> ${memberRole}`, inline: false }
-            )
-            .setFooter({ text: 'As alterações são salvas automaticamente após a seleção.' });
+        if (config?.registroMembroRoleId) {
+            membroRoleSelect.setDefaultRoles([config.registroMembroRoleId]);
+        }
 
-        // --- MENU ATUALIZADO PARA MÚLTIPLA SELEÇÃO ---
-        const recruiterRoleMenu = new ActionRowBuilder().addComponents(
-            new RoleSelectMenuBuilder()
-                .setCustomId('registro_select_recrutador_roles') // Aponta para o novo handler
-                .setPlaceholder('SELECIONE OS CARGOS DE RECRUTADOR')
-                .setMinValues(0) // Permite selecionar "nenhum" para limpar a lista
-                .setMaxValues(10) // Permite selecionar até 10 cargos
-        );
+        const recrutadorRoleSelect = new RoleSelectMenuBuilder()
+            .setCustomId('registro_select_recrutador_role')
+            .setPlaceholder('Selecione os cargos de recrutador')
+            .setMinValues(1)
+            .setMaxValues(10);
 
-        const memberRoleMenu = new ActionRowBuilder().addComponents(
-            new RoleSelectMenuBuilder()
-                .setCustomId('registro_select_membro_role')
-                .setPlaceholder('SELECIONE O CARGO DE MEMBRO')
-        );
-        
-        const backButtonRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId('view_module_registro')
-                .setLabel('Voltar')
-                .setStyle(ButtonStyle.Secondary)
-                .setEmoji('⬅️')
-        );
+        if (config?.recrutador_roles && config.recrutador_roles.length > 0) {
+            recrutadorRoleSelect.setDefaultRoles(config.recrutador_roles);
+        }
 
-        await interaction.editReply({ embeds: [embed], components: [recruiterRoleMenu, memberRoleMenu, backButtonRow] });
-    }
+        await interaction.reply({
+            content: 'Selecione os cargos abaixo:',
+            components: [
+                new ActionRowBuilder().addComponents(membroRoleSelect),
+                new ActionRowBuilder().addComponents(recrutadorRoleSelect),
+            ],
+            ephemeral: true,
+        });
+    },
 };
