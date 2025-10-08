@@ -15,9 +15,9 @@ module.exports = {
 
             // --- VERIFICAÇÕES DETALHADAS ---
             if (!config) {
-                return await interaction.editReply({ 
+                return await interaction.editReply({
                     content: '❌ As configurações de registro ainda não foram iniciadas para este servidor. Use o painel de configuração primeiro.',
-                    ephemeral: true 
+                    ephemeral: true
                 });
             }
 
@@ -25,7 +25,9 @@ module.exports = {
             if (!config.registroChannelId) missingSettings.push('Canal de Interação');
             if (!config.registroLogsChannelId) missingSettings.push('Canal de Logs');
             if (!config.registroMembroRoleId) missingSettings.push('Cargo de Membro');
-            if (!config.registroRecrutadorRoleId) missingSettings.push('Cargo de Recrutador');
+            // --- LINHA CORRIGIDA ---
+            if (!config.recrutador_roles || config.recrutador_roles.length === 0) missingSettings.push('Cargo de Recrutador');
+            // --- FIM DA CORREÇÃO ---
 
             if (missingSettings.length > 0) {
                 const errorMessage = `❌ Impossível publicar o painel. As seguintes configurações estão em falta:\n- **${missingSettings.join('**\n- **')}**\n\nPor favor, configure todos os canais e cargos necessários antes de publicar.`;
