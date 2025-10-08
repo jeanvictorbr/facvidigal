@@ -5,11 +5,9 @@ module.exports = {
     customId: 'registro_enviar_painel',
     async execute(interaction, client) {
         await interaction.deferReply({ ephemeral: true });
-
         const guildId = interaction.guild.id;
 
         try {
-            // CORREÇÃO: Buscando também o campo da thumbnail
             const config = await client.prisma.guildConfig.findUnique({
                 where: { guildId },
             });
@@ -37,12 +35,13 @@ module.exports = {
                 return await interaction.editReply({ content: '❌ O canal de interação configurado não foi encontrado ou foi excluído.', ephemeral: true });
             }
 
+            // CORREÇÃO FINAL: Usando os nomes exatos ao construir a embed
             const embed = new EmbedBuilder()
                 .setTitle(config.registroEmbedTitle || 'PAINEL DE REGISTRO')
-                .setDescription(config.registroEmbedDescription || 'Clique no botão abaixo para iniciar o seu processo de registro.')
+                .setDescription(config.registroEmbedDesc || 'Clique no botão abaixo para iniciar o seu processo de registro.') // CORRIGIDO
                 .setColor(config.registroEmbedColor || '#0099ff')
-                .setImage(config.registroEmbedImageURL || null)
-                .setThumbnail(config.registroEmbedThumbURL || null); // CORREÇÃO: Adicionada a thumbnail
+                .setImage(config.registroEmbedImage || null) // CORRIGIDO
+                .setThumbnail(config.registroEmbedThumb || null); // CORRIGIDO
 
             const row = new ActionRowBuilder()
                 .addComponents(

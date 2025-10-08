@@ -13,26 +13,26 @@ module.exports = {
 
         if (color && !/^#[0-9A-F]{6}$/i.test(color)) {
             await interaction.followUp({ content: '❌ A cor fornecida não é um código hexadecimal válido (ex: #FFFFFF).', ephemeral: true });
-            color = null; // Invalida a cor para não salvar
+            color = null; 
         }
 
-        // CORREÇÃO: Salvando nos campos corretos
+        // CORREÇÃO FINAL: Salvando nos campos com nomes exatos
         await client.prisma.guildConfig.upsert({
             where: { guildId },
             update: {
                 registroEmbedTitle: title || null,
-                registroEmbedDescription: description || null,
+                registroEmbedDesc: description || null,      // CORRIGIDO
                 registroEmbedColor: color || null,
-                registroEmbedImageURL: image || null,      // CORRIGIDO
-                registroEmbedThumbURL: thumb || null,      // CORRIGIDO
+                registroEmbedImage: image || null,           // CORRIGIDO
+                registroEmbedThumb: thumb || null,           // CORRIGIDO
             },
             create: {
                 guildId,
                 registroEmbedTitle: title,
-                registroEmbedDescription: description,
+                registroEmbedDesc: description,      // CORRIGIDO
                 registroEmbedColor: color,
-                registroEmbedImageURL: image,      // CORRIGIDO
-                registroEmbedThumbURL: thumb,      // CORRIGIDO
+                registroEmbedImage: image,           // CORRIGIDO
+                registroEmbedThumb: thumb,           // CORRIGIDO
             },
         });
 

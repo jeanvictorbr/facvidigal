@@ -6,15 +6,15 @@ module.exports = {
     async execute(interaction, client) {
         const guildId = interaction.guild.id;
 
-        // CORREÇÃO: Lendo os campos com os nomes corretos
+        // CORREÇÃO FINAL: Usando os nomes exatos do seu schema
         const config = await client.prisma.guildConfig.findUnique({
             where: { guildId },
             select: {
                 registroEmbedTitle: true,
-                registroEmbedDescription: true,
+                registroEmbedDesc: true,      // CORRIGIDO
                 registroEmbedColor: true,
-                registroEmbedImageURL: true,
-                registroEmbedThumbURL: true, // Lendo o novo campo
+                registroEmbedImage: true,     // CORRIGIDO
+                registroEmbedThumb: true,     // CORRIGIDO
             }
         });
 
@@ -35,7 +35,7 @@ module.exports = {
                 new TextInputBuilder()
                     .setCustomId('registro_embed_description')
                     .setLabel('Descrição da Embed')
-                    .setValue(config?.registroEmbedDescription || '')
+                    .setValue(config?.registroEmbedDesc || '') // CORRIGIDO
                     .setStyle(TextInputStyle.Paragraph)
                     .setRequired(false)
             ),
@@ -52,7 +52,7 @@ module.exports = {
                 new TextInputBuilder()
                     .setCustomId('registro_embed_image')
                     .setLabel('URL da Imagem Principal')
-                    .setValue(config?.registroEmbedImageURL || '') // CORRIGIDO
+                    .setValue(config?.registroEmbedImage || '') // CORRIGIDO
                     .setPlaceholder('https://i.imgur.com/seu-link.png')
                     .setStyle(TextInputStyle.Short)
                     .setRequired(false)
@@ -61,7 +61,7 @@ module.exports = {
                 new TextInputBuilder()
                     .setCustomId('registro_embed_thumb')
                     .setLabel('URL da Thumbnail (Imagem Menor)')
-                    .setValue(config?.registroEmbedThumbURL || '') // CORRIGIDO
+                    .setValue(config?.registroEmbedThumb || '') // CORRIGIDO
                     .setPlaceholder('https://i.imgur.com/seu-link-menor.png')
                     .setStyle(TextInputStyle.Short)
                     .setRequired(false)
