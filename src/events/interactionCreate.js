@@ -1,107 +1,108 @@
 // src/events/interactionCreate.js
-const { Events, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+const { Events } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
-const prisma = require('../prisma/client');
 
-// Carregador de componentes
-const componentHandlers = new Map();
-const componentDirs = ['buttons', 'modals', 'selects'];
-componentDirs.forEach(dir => {
-    const handlerPath = path.join(__dirname, '..', 'components', dir);
-    if (!fs.existsSync(handlerPath)) return;
-    const files = fs.readdirSync(handlerPath).filter(f => f.endsWith('.js'));
+// --- Carregador Dinâmico para Componentes (Botões, Menus, Modais) ---
+const components = new Map();
+const componentsPath = path.join(__dirname, '../components');
+
+// Função recursiva para encontrar todos os ficheiros de componentes
+function loadComponents(directory) {
+    const files = fs.readdirSync(directory, { withFileTypes: true });
     for (const file of files) {
-        try {
-            const handler = require(path.join(handlerPath, file));
-            if (handler.customId) componentHandlers.set(handler.customId, handler);
-        } catch (error) {
-            console.error(`[FALHA NO CARREGAMENTO] Handler: ${file}`, error);
+        const fullPath = path.join(directory, file.name);
+        if (file.isDirectory()) {
+            loadComponents(fullPath); // Se for um diretório, entra nele
+        } else if (file.name.endsWith('.js')) {
+            try {
+                const component = require(fullPath);
+                if (component.customId) {
+                    components.set(component.customId, component);
+                }
+            } catch (error) {
+                console.error(`[AVISO] Falha ao carregar o componente em ${fullPath}:`, error.message);
+            }
         }
     }
-});
+}
+
+loadComponents(componentsPath);
+// --- Fim do Carregador de Componentes ---
+
 
 module.exports = {
     name: Events.InteractionCreate,
     async execute(interaction, client) {
-        // Anexa os handlers ao client para que possam ser acessados de outros arquivos, se necessário
-        client.componentHandlers = componentHandlers;
+        // Guarda a hora de início para medir a latência
+        const startTime = Date.now();
 
-        try {
-            // Lógica para comandos de barra (/)
-            if (interaction.isChatInputCommand()) {
-                const command = client.commands.get(interaction.commandName);
-                if (command) await command.execute(interaction, client);
-                return;
-            }
+        // Determina o tipo de interação e o handler correspondente
+        let handler;
+        let handlerName = 'Desconhecido';
+        let handlerType = 'Desconhecido';
 
-            // Lógica para componentes (botões, menus, modais)
-            let handler;
-            if (componentHandlers.has(interaction.customId)) {
-                handler = componentHandlers.get(interaction.customId);
-            } else {
-                let bestMatch = '';
-                for (const key of componentHandlers.keys()) {
-                    if (interaction.customId.startsWith(key) && key.length > bestMatch.length) {
-                        bestMatch = key;
-                    }
-                }
-                if (bestMatch) {
-                    handler = componentHandlers.get(bestMatch);
-                }
-            }
-
+        if (interaction.isChatInputCommand()) {
+            handler = client.commands.get(interaction.commandName);
+            handlerName = interaction.commandName;
+            handlerType = 'Comando';
+        } else if (interaction.isButton() || interaction.isAnySelectMenu() || interaction.isModalSubmit()) {
+            handler = components.get(interaction.customId);
+            // Para IDs dinâmicos (ex: 'confirm_delete:${itemId}')
             if (!handler) {
-                return console.warn(`[AVISO] Nenhum handler encontrado para o customId: ${interaction.customId}`);
-            }
-
-            // ===================================================================
-            // CAMADA DE SEGURANÇA FINAL (VERIFICAÇÃO DE SENHA)
-            // ===================================================================
-            const moduleMap = {
-                'justica_open_panel': 'Conduta e Punições',
-                'giveaway_open_panel': 'Criador de Sorteios',
-                'view_module_financas': 'Módulo Financeiro',
-                'view_module_registro': 'Registro Automatizado',
-                'view_module_hierarquia': 'Sincronização de Hierarquia',
-                'view_module_roletags': 'Padronização de Tags',
-                'view_module_prune': 'Depuração de Inativos',
-                'view_module_operations': 'Operações Táticas',
-                'view_module_partnerships': 'Gerenciamento de Parcerias',
-                'view_module_sentinel': 'Sentinela (Relatórios)',
-                'rpainel_action_create_embed': 'Criador de Embeds',
-                'changelog_view_main': 'Changelog'
-                // Este mapa agora está completo com os IDs dos botões que abrem cada módulo.
-            };
-
-            const moduleName = moduleMap[interaction.customId];
-            
-            // Se o botão clicado for um "portão de entrada" para um módulo...
-            if (moduleName) {
-                const moduleStatus = await prisma.moduleStatus.findFirst({ where: { name: moduleName, guildId: interaction.guild.id } });
-                
-                // ...e esse módulo tiver uma senha no banco de dados...
-                if (moduleStatus?.password) {
-                    // ...pede a senha e interrompe a execução normal.
-                    const passwordModal = new ModalBuilder()
-                        .setCustomId(`module_password_prompt_${interaction.customId}`)
-                        .setTitle(`Acesso Restrito: ${moduleName}`);
-                    const passwordInput = new TextInputBuilder().setCustomId('module_password_input').setLabel('Digite a senha de acesso').setStyle(TextInputStyle.Short).setRequired(true);
-                    passwordModal.addComponents(new ActionRowBuilder().addComponents(passwordInput));
-                    return interaction.showModal(passwordModal);
+                const [baseId] = interaction.customId.split(':');
+                handler = components.get(baseId);
+                 if (handler) {
+                    handlerName = `${baseId} (dinâmico)`;
                 }
+            } else {
+                 handlerName = interaction.customId;
             }
-            // ===================================================================
+            handlerType = interaction.isButton() ? 'Botão' : (interaction.isAnySelectMenu() ? 'Menu' : 'Modal');
+        }
 
-            // Se passou pela verificação (ou não precisava de senha), executa a ação.
+        if (!handler) {
+            console.error(`[ERRO] Nenhum handler encontrado para a interação: ${handlerName} | Tipo: ${handlerType} | Custom ID: ${interaction.customId || 'N/A'}`);
+            if (interaction.deferred || interaction.replied) return;
+            try {
+                await interaction.reply({ content: 'Este comando ou componente não foi encontrado. Pode ter sido atualizado ou removido.', ephemeral: true });
+            } catch (e) {
+                // Ignora erros se a interação já não for válida
+            }
+            return;
+        }
+
+        // --- BLOCO DE EXECUÇÃO E CAPTURA DE ERRO ROBUSTO ---
+        try {
+            // Executa o handler correspondente
             await handler.execute(interaction, client);
 
+            // Log de sucesso (opcional, mas bom para debug)
+            const latency = Date.now() - startTime;
+            console.log(`[SUCESSO] Interação '${handlerName}' (Tipo: ${handlerType}) executada por ${interaction.user.tag} em ${latency}ms.`);
+
         } catch (error) {
-            console.error(`[ERRO CRÍTICO] Falha ao executar a interação ${interaction.customId || interaction.commandName}:`, error);
+            // --- ESTA É A PARTE MAIS IMPORTANTE ---
+            // Loga o erro COMPLETO no console, incluindo o 'stack trace'
+            console.error(`\n\n--- [ERRO GRAVE] Falha na execução da interação '${handlerName}' ---`);
+            console.error(`Tipo de Interação: ${handlerType}`);
+            console.error(`Usuário: ${interaction.user.tag} (${interaction.user.id})`);
+            console.error(`ID Customizado: ${interaction.customId || 'N/A'}`);
+            console.error('Objeto do Erro Completo:');
+            console.error(error); // Imprime o objeto de erro inteiro com todos os detalhes
+            console.error('--- Fim do Relatório de Erro ---\n\n');
+
+
+            // Envia a resposta de erro genérica para o usuário no Discord
+            const errorMessage = {
+                content: '🔴 | Ocorreu um erro interno ao processar a sua solicitação. A equipa de desenvolvimento já foi notificada.',
+                ephemeral: true
+            };
+
             if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ content: '❌ Ocorreu um erro ao processar esta ação.', ephemeral: true }).catch(() => {});
+                await interaction.followUp(errorMessage).catch(console.error);
             } else {
-                await interaction.reply({ content: '❌ Ocorreu um erro ao processar esta ação.', ephemeral: true }).catch(() => {});
+                await interaction.reply(errorMessage).catch(console.error);
             }
         }
     },
