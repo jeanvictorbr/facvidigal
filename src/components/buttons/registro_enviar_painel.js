@@ -1,43 +1,69 @@
 // src/components/buttons/registro_enviar_painel.js
-const { ButtonInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField } = require('discord.js');
-const prisma = require('../../prisma/client');
+const { ButtonStyle, EmbedBuilder, ActionRowBuilder, ButtonBuilder } = require('discord.js');
 
 module.exports = {
     customId: 'registro_enviar_painel',
-    async execute(interaction) {
+    async execute(interaction, client) {
         await interaction.deferReply({ ephemeral: true });
 
-        const config = await prisma.guildConfig.findUnique({
-            where: { guildId: interaction.guild.id },
-        });
+        const guildId = interaction.guild.id;
 
-        if (!config || !config.interactionChannelId || !config.membroRoleId || !config.recrutadorRoleId) {
-            return interaction.editReply({ content: '❌ **Configuração Incompleta!** Antes de enviar o painel, todos os cargos e o canal de interação devem ser definidos no módulo de registro.' });
-        }
-
-        const targetChannel = await interaction.guild.channels.fetch(config.interactionChannelId).catch(() => null);
-        if (!targetChannel) {
-            return interaction.editReply({ content: `❌ **Canal não encontrado!** O canal de interação configurado (<#${config.interactionChannelId}>) não existe ou eu não tenho acesso a ele.` });
-        }
-
-        const finalEmbed = new EmbedBuilder()
-            .setColor('#c0392b') // Vermelho
-            .setTitle(config.registroEmbedTitle || 'Formulário de Registro')
-            .setDescription(`\`\`\`diff\n- ${config.registroEmbedDesc || 'Clique no botão abaixo para iniciar seu registro.'}\n\`\`\``)
-            .setImage(config.registroEmbedImage || null)
-            .setThumbnail(config.registroEmbedThumb || null)
-            .setFooter({ text: 'ZéPiqueno aplicações', iconURL: 'https://media.tenor.com/k6g28p-C6C4AAAAC/ze-pequeno-dadinho.gif' });
-
-        const actionRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('registro_iniciar').setLabel('Solicitar Registro').setStyle(ButtonStyle.Primary).setEmoji('📝')
-        );
-        
         try {
-            await targetChannel.send({ embeds: [finalEmbed], components: [actionRow] });
-            await interaction.editReply({ content: `✅ Painel de registro enviado com sucesso para o canal ${targetChannel}!` });
+            const config = await client.prisma.guildConfig.findUnique({
+                where: { guildId },
+            });
+
+            // --- VERIFICAÇÕES DETALHADAS ---
+            if (!config) {
+                return await interaction.editReply({ 
+                    content: '❌ As configurações de registro ainda não foram iniciadas para este servidor. Use o painel de configuração primeiro.',
+                    ephemeral: true 
+                });
+            }
+
+            const missingSettings = [];
+            if (!config.registroChannelId) missingSettings.push('Canal de Interação');
+            if (!config.registroLogsChannelId) missingSettings.push('Canal de Logs');
+            if (!config.registroMembroRoleId) missingSettings.push('Cargo de Membro');
+            if (!config.registroRecrutadorRoleId) missingSettings.push('Cargo de Recrutador');
+
+            if (missingSettings.length > 0) {
+                const errorMessage = `❌ Impossível publicar o painel. As seguintes configurações estão em falta:\n- **${missingSettings.join('**\n- **')}**\n\nPor favor, configure todos os canais e cargos necessários antes de publicar.`;
+                return await interaction.editReply({
+                    content: errorMessage,
+                    ephemeral: true
+                });
+            }
+            // --- FIM DAS VERIFICAÇÕES ---
+
+            const targetChannel = await interaction.guild.channels.fetch(config.registroChannelId);
+            if (!targetChannel) {
+                return await interaction.editReply({ content: '❌ O canal de interação configurado não foi encontrado ou foi excluído.', ephemeral: true });
+            }
+
+            const embed = new EmbedBuilder()
+                .setTitle(config.registroEmbedTitle || 'PAINEL DE REGISTRO')
+                .setDescription(config.registroEmbedDescription || 'Clique no botão abaixo para iniciar o seu processo de registro em nossa facção.')
+                .setColor(config.registroEmbedColor || '#0099ff')
+                .setImage(config.registroEmbedImageURL || null);
+
+            const row = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('registro_iniciar')
+                        .setLabel('Iniciar Registro')
+                        .setStyle(ButtonStyle.Success)
+                        .setEmoji('📝'),
+                );
+
+            await targetChannel.send({ embeds: [embed], components: [row] });
+
+            await interaction.editReply({ content: `✅ Painel de registro publicado com sucesso no canal ${targetChannel}!`, ephemeral: true });
+
         } catch (error) {
-            console.error("Erro ao enviar painel de registro:", error);
-            await interaction.editReply({ content: `❌ **Falha de Permissão!** Não consigo enviar mensagens no canal ${targetChannel}. Verifique minhas permissões.` });
+            // Este catch agora só atuará em erros verdadeiramente inesperados
+            console.error('Erro ao publicar painel de registro:', error);
+            await interaction.editReply({ content: '❌ Ocorreu um erro inesperado ao buscar as configurações ou enviar o painel. Verifique minhas permissões no canal de destino.', ephemeral: true });
         }
-    }
+    },
 };
