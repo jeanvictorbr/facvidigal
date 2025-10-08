@@ -1,19 +1,17 @@
 // src/components/selects/registro_select_membro_role.js
-const prisma = require('../../prisma/client');
-
 module.exports = {
     customId: 'registro_select_membro_role',
     async execute(interaction, client) {
         const guildId = interaction.guild.id;
         const selectedRole = interaction.values[0];
 
-        // CORREÇÃO: Usando 'guildConfig' e o campo 'registroMembroRoleId'
+        // CORREÇÃO: Usando 'membroRoleId'
         await client.prisma.guildConfig.upsert({
             where: { guildId },
-            update: { registroMembroRoleId: selectedRole },
+            update: { membroRoleId: selectedRole },
             create: {
                 guildId,
-                registroMembroRoleId: selectedRole,
+                membroRoleId: selectedRole,
             },
         });
 

@@ -13,21 +13,19 @@ module.exports = {
                 where: { guildId },
             });
 
-            // --- VERIFICAÇÕES DETALHADAS ---
             if (!config) {
-                return await interaction.editReply({
+                return await interaction.editReply({ 
                     content: '❌ As configurações de registro ainda não foram iniciadas para este servidor. Use o painel de configuração primeiro.',
-                    ephemeral: true
+                    ephemeral: true 
                 });
             }
 
+            // --- VERIFICAÇÕES CORRIGIDAS ---
             const missingSettings = [];
-            if (!config.registroChannelId) missingSettings.push('Canal de Interação');
-            if (!config.registroLogsChannelId) missingSettings.push('Canal de Logs');
-            if (!config.registroMembroRoleId) missingSettings.push('Cargo de Membro');
-            // --- LINHA CORRIGIDA ---
-            if (!config.recrutador_roles || config.recrutador_roles.length === 0) missingSettings.push('Cargo de Recrutador');
-            // --- FIM DA CORREÇÃO ---
+            if (!config.interactionChannelId) missingSettings.push('Canal de Interação');
+            if (!config.logsChannelId) missingSettings.push('Canal de Logs');
+            if (!config.membroRoleId) missingSettings.push('Cargo de Membro');
+            if (!config.recrutadorRoleIds || config.recrutadorRoleIds.length === 0) missingSettings.push('Cargo de Recrutador');
 
             if (missingSettings.length > 0) {
                 const errorMessage = `❌ Impossível publicar o painel. As seguintes configurações estão em falta:\n- **${missingSettings.join('**\n- **')}**\n\nPor favor, configure todos os canais e cargos necessários antes de publicar.`;
@@ -38,7 +36,7 @@ module.exports = {
             }
             // --- FIM DAS VERIFICAÇÕES ---
 
-            const targetChannel = await interaction.guild.channels.fetch(config.registroChannelId);
+            const targetChannel = await interaction.guild.channels.fetch(config.interactionChannelId);
             if (!targetChannel) {
                 return await interaction.editReply({ content: '❌ O canal de interação configurado não foi encontrado ou foi excluído.', ephemeral: true });
             }
@@ -63,7 +61,6 @@ module.exports = {
             await interaction.editReply({ content: `✅ Painel de registro publicado com sucesso no canal ${targetChannel}!`, ephemeral: true });
 
         } catch (error) {
-            // Este catch agora só atuará em erros verdadeiramente inesperados
             console.error('Erro ao publicar painel de registro:', error);
             await interaction.editReply({ content: '❌ Ocorreu um erro inesperado ao buscar as configurações ou enviar o painel. Verifique minhas permissões no canal de destino.', ephemeral: true });
         }

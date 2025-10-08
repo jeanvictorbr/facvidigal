@@ -1,18 +1,17 @@
 // src/components/buttons/registro_config_cargos.js
 const { ActionRowBuilder, RoleSelectMenuBuilder } = require('discord.js');
-const prisma = require('../../prisma/client');
 
 module.exports = {
     customId: 'registro_config_cargos',
     async execute(interaction, client) {
         const guildId = interaction.guild.id;
 
-        // CORREÇÃO: Lendo de 'guildConfig' e usando os nomes de campo corretos
+        // CORREÇÃO: Usando os nomes de campo corretos do schema: 'membroRoleId' e 'recrutadorRoleIds'
         const config = await client.prisma.guildConfig.findUnique({
             where: { guildId },
             select: {
-                registroMembroRoleId: true,
-                recrutador_roles: true,
+                membroRoleId: true,
+                recrutadorRoleIds: true,
             },
         });
 
@@ -21,8 +20,8 @@ module.exports = {
             .setPlaceholder('Selecione o cargo de membro')
             .setMaxValues(1);
 
-        if (config?.registroMembroRoleId) {
-            membroRoleSelect.setDefaultRoles([config.registroMembroRoleId]);
+        if (config?.membroRoleId) {
+            membroRoleSelect.setDefaultRoles([config.membroRoleId]);
         }
 
         const recrutadorRoleSelect = new RoleSelectMenuBuilder()
@@ -31,8 +30,8 @@ module.exports = {
             .setMinValues(1)
             .setMaxValues(10);
 
-        if (config?.recrutador_roles && config.recrutador_roles.length > 0) {
-            recrutadorRoleSelect.setDefaultRoles(config.recrutador_roles);
+        if (config?.recrutadorRoleIds && config.recrutadorRoleIds.length > 0) {
+            recrutadorRoleSelect.setDefaultRoles(config.recrutadorRoleIds);
         }
 
         await interaction.reply({

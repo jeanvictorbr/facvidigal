@@ -1,18 +1,17 @@
 // src/components/buttons/registro_config_canais.js
 const { ActionRowBuilder, ChannelSelectMenuBuilder, ChannelType } = require('discord.js');
-const prisma = require('../../prisma/client');
 
 module.exports = {
     customId: 'registro_config_canais',
     async execute(interaction, client) {
         const guildId = interaction.guild.id;
 
-        // CORREÇÃO: Lendo de 'guildConfig' e usando os nomes de campo corretos
+        // CORREÇÃO: Usando 'interactionChannelId' e 'logsChannelId'
         const config = await client.prisma.guildConfig.findUnique({
             where: { guildId },
             select: {
-                registroChannelId: true,
-                registroLogsChannelId: true,
+                interactionChannelId: true,
+                logsChannelId: true,
             },
         });
 
@@ -21,8 +20,8 @@ module.exports = {
             .setPlaceholder('Selecione o canal de interação')
             .addChannelTypes(ChannelType.GuildText);
 
-        if (config?.registroChannelId) {
-            interactionChannelSelect.setDefaultChannels([config.registroChannelId]);
+        if (config?.interactionChannelId) {
+            interactionChannelSelect.setDefaultChannels([config.interactionChannelId]);
         }
 
         const logsChannelSelect = new ChannelSelectMenuBuilder()
@@ -30,8 +29,8 @@ module.exports = {
             .setPlaceholder('Selecione o canal de logs')
             .addChannelTypes(ChannelType.GuildText);
 
-        if (config?.registroLogsChannelId) {
-            logsChannelSelect.setDefaultChannels([config.registroLogsChannelId]);
+        if (config?.logsChannelId) {
+            logsChannelSelect.setDefaultChannels([config.logsChannelId]);
         }
 
         await interaction.reply({
